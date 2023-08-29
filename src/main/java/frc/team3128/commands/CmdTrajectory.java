@@ -28,24 +28,28 @@ import frc.team3128.subsystems.Swerve;
 public class CmdTrajectory extends CommandBase {
 
     private final Swerve swerve;
-    private final Pose2d endPoint;
+    private final int index;
     private CommandBase trajCommand;
 
-    public CmdTrajectory(Pose2d endPoint) {
+    public CmdTrajectory(int index) {
         swerve = Swerve.getInstance();
-        this.endPoint = endPoint;
+        this.index = index;
         addRequirements(swerve);
     }
 
-    private ArrayList<Pose2d> generatePoses() {
-        final ArrayList<Pose2d> poses = new ArrayList<Pose2d>();
+    private PathPoint generatePoint(Translation2d translation, Rotation2d heading, Rotation2d holonomicAngle) {
+        return new PathPoint(allianceFlip(translation), allianceFlip(heading), allianceFlip(holonomicAngle));
+    }
+
+    private ArrayList<PathPoint> generatePoses() {
+        final ArrayList<PathPoint> poses = new ArrayList<PathPoint>();
         final Translation2d start = swerve.getPose().getTranslation();
-        final Rotation2d holonomicAngle = endPoint.getRotation();
-        poses.add(new Pose2d(start, swerve.getGyroRotation2d()));
-        if (!pastPoint(start, CONDITION_1)) poses.add(allianceFlip(new Pose2d(POINT_1, holonomicAngle)));
-        if (!pastPoint(start, CONDITION_2)) poses.add(allianceFlip(new Pose2d(start.nearest(POINT_2), holonomicAngle)));
-        if (!pastPoint(start, CONDITION_3)) poses.add(allianceFlip(new Pose2d(start.nearest(POINT_3), holonomicAngle)));
-        poses.add(allianceFlip(endPoint));
+        final Rotation2d holonomicAngle = allianceFlip(END_POINTS[index].getRotation());
+        poses.add(new PathPoint(start, swerve.getGyroRotation2d(), allianceFlip(HEADING_0)));
+        if (!pastPoint(start, CONDITION_1)) poses.add(generatePoint(POINT_1, HEADING_1, holonomicAngle));
+        if (!pastPoint(start, CONDITION_2)) poses.add(new PathPoint(allianceFlip(start.nearest(POINT_2)), allianceFlip(HEADING_2), holonomicAngle));
+        if (!pastPoint(start, CONDITION_3)) poses.add(new PathPoint(allianceFlip(start.nearest( POINT_3)), allianceFlip(HEADING_3), holonomicAngle));
+        
         return poses;
     }
 

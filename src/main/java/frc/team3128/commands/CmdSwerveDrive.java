@@ -48,7 +48,7 @@ public class CmdSwerveDrive extends CommandBase {
             translation = translation.rotateBy(Rotation2d.fromDegrees(-90));
         }
         
-        rotation = -zAxis.getAsDouble() * maxAngularVelocity * swerve.throttle; 
+        rotation = zAxis.getAsDouble() * maxAngularVelocity * swerve.throttle; 
 
         Rotation2d driveAngle = translation.getAngle();
         double slowedDist = accelLimiter.calculate(translation.getNorm());
