@@ -27,10 +27,11 @@ import frc.team3128.common.hardware.input.NAR_Joystick;
 import frc.team3128.common.hardware.input.NAR_XboxController;
 import frc.team3128.common.narwhaldashboard.NarwhalDashboard;
 import frc.team3128.common.utility.Log;
-import frc.team3128.subsystems.Led;
+import frc.team3128.subsystems.Leds;
 import frc.team3128.common.utility.NAR_Shuffleboard;
 import frc.team3128.subsystems.Swerve;
 import frc.team3128.subsystems.Vision;
+import frc.team3128.subsystems.Leds.Colors;
 
 import java.util.function.BooleanSupplier;
 
@@ -44,7 +45,7 @@ public class RobotContainer {
 
     private Swerve swerve;
     private Vision vision;
-    private Led led;
+    private Leds leds;
 
     private NAR_Joystick leftStick;
     private NAR_Joystick rightStick;
@@ -66,7 +67,7 @@ public class RobotContainer {
 
         swerve = Swerve.getInstance();
         vision = Vision.getInstance();
-        led = Led.getInstance();
+        leds = Leds.getInstance();
 
         //TODO: Enable all PIDSubsystems so that useOutput runs here
         // pivot.enable();
@@ -96,6 +97,7 @@ public class RobotContainer {
         controller.getButton("LeftTrigger").onTrue(new InstantCommand(()-> swerve.throttle = .25)).onFalse(new InstantCommand(()-> swerve.throttle = 0.8));
         controller.getButton("X").onTrue(new RunCommand(()-> swerve.xlock(), swerve)).onFalse(new InstantCommand(()-> swerve.stop(),swerve));
         controller.getButton("B").onTrue(new InstantCommand(()-> swerve.resetEncoders()));
+
         controller.getButton("Start").onTrue(new InstantCommand(()-> swerve.zeroGyro()));
         
         rightStick.getButton(1).onTrue(new InstantCommand(()->swerve.zeroGyro()));
@@ -133,6 +135,7 @@ public class RobotContainer {
 
     public void init() {
         Vision.AUTO_ENABLED = false;
+        leds.setUnderglowLeds(Colors.AUTO);
     }
 
     private void initDashboard() {
