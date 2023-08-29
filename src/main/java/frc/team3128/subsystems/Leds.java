@@ -9,7 +9,7 @@ import com.ctre.phoenix.led.CANdleConfiguration;
 import com.ctre.phoenix.led.CANdleControlFrame;
 import com.ctre.phoenix.led.CANdleStatusFrame;
 import com.ctre.phoenix.led.RainbowAnimation;
-
+import com.ctre.phoenix.led.RgbFadeAnimation;
 import com.ctre.phoenix.led.ColorFlowAnimation.Direction;
 import com.ctre.phoenix.led.LarsonAnimation.BounceMode;
 import com.ctre.phoenix.led.TwinkleAnimation.TwinklePercent;
@@ -31,7 +31,7 @@ public class Leds extends SubsystemBase {
         return instance;
     }
 
-    public enum States {
+    public enum Colors {
         OFF(0,0,0),
         CONE(255,255,0),
         CUBE(255,87,51),
@@ -44,7 +44,7 @@ public class Leds extends SubsystemBase {
         private final int b;
         private final int g;
 
-        States(int r, int g, int b) {
+        Colors(int r, int g, int b) {
             this.r = r;
             this.g = b;
             this.b = g;
@@ -63,12 +63,20 @@ public class Leds extends SubsystemBase {
         m_candle.configAllSettings(config);
     }
 
-    public void setElevatorColor(States state) {
-        m_candle.setLEDs(state.r,state.g,state.b,LedConstants.WHITE_VALUE,0,LedConstants.ELEVATOR_COUNT);
+    //Set Underglow Leds
+    public void setUnderglowLeds(Colors color) {
+        m_candle.setLEDs(color.r,color.g,color.b,LedConstants.WHITE_VALUE,LedConstants.STARTING_ID,LedConstants.UNDERGLOW_COUNT);
     }
 
-    public void setUnderglowColor(States state) {
-        m_candle.setLEDs(state.r,state.g,state.b,LedConstants.WHITE_VALUE,LedConstants.ELEVATOR_COUNT,LedConstants.UNDERGLOW_COUNT);
+    //Set Elevator Leds
+    public void setElevatorLeds(Colors color) {
+        m_candle.setLEDs(color.r,color.g,color.b,LedConstants.WHITE_VALUE,LedConstants.UNDERGLOW_COUNT+1,LedConstants.ELEVATOR_COUNT);
+    }
+
+    //Set All Leds
+    public void setAllLeds(Colors color) {
+        m_candle.setLEDs(color.r,color.g,color.b,LedConstants.WHITE_VALUE,LedConstants.STARTING_ID,LedConstants.UNDERGLOW_COUNT + LedConstants.ELEVATOR_COUNT);
+
     }
 
     

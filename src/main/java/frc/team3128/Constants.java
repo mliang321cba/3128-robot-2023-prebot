@@ -614,8 +614,10 @@ public class Constants {
         public static final int CANDLE_ID = 0;
         
         public static final int WHITE_VALUE = 0; //leds used don't have a white value
-        public static final int UNDERGLOW_COUNT = 100;
-        public static final int ELEVATOR_COUNT = 100;
+        
+        public static final int STARTING_ID = 8;
+        public static final int UNDERGLOW_COUNT = 60;
+        public static final int ELEVATOR_COUNT = 0;
     }
 
 
