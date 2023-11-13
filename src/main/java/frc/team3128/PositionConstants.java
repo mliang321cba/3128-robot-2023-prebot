@@ -2,19 +2,20 @@ package frc.team3128;
 
 public class PositionConstants {
     public static enum Position {
-        HIGH_CONE(47, 0, true),
-        HIGH_CUBE(50, 20, false),
-        MID_CONE(22.5, 28, true),
+        HIGH_CONE_AUTO(46.5, 0, true),
+        HIGH_CONE(48, -10, true),
+        HIGH_CUBE(48.5, 35, false),
+        MID_CONE(41, -31, true),
         MID_CUBE(25, 30, false),
         LOW(3, 45, true),
 
-        SHELF_CONE(53, -30, true),
+        SHELF_CONE(25, 45, true),
         SHELF_CUBE(37, 22, false),
         CHUTE_CONE(10, 55, true),
         CHUTE_CUBE(10, 45, false),
 
-        GROUND_CONE(10, -18, true),
-        GROUND_CUBE(0, 0, false),
+        GROUND_CONE(10.5, -18, true),
+        GROUND_CUBE(1, 10, false),
 
         NEUTRAL(3, 80, false);
 

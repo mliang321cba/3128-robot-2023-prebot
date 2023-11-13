@@ -3,16 +3,15 @@ package frc.team3128.commands;
 import com.pathplanner.lib.PathPlanner;
 import com.pathplanner.lib.PathPlannerTrajectory;
 import com.pathplanner.lib.PathPoint;
-import com.pathplanner.lib.commands.PPSwerveControllerCommand;
-
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-import static frc.team3128.Constants.SwerveConstants.*;
-import static frc.team3128.Constants.VisionConstants.*;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+
 import static frc.team3128.Constants.FieldConstants.*;
 
 import java.util.ArrayList;
@@ -24,79 +23,90 @@ import static frc.team3128.Constants.TrajectoryConstants.*;
 
 import frc.team3128.autonomous.Trajectories;
 import frc.team3128.subsystems.Swerve;
+import frc.team3128.subsystems.Vision;
 
 public class CmdTrajectory extends CommandBase {
 
     private final Swerve swerve;
-    private final int index;
+    private final int xPos;
+    private Pose2d endPoint;
+    private int index;
     private CommandBase trajCommand;
 
-    public CmdTrajectory(int index) {
+    public CmdTrajectory(int xPos) {
         swerve = Swerve.getInstance();
-        this.index = index;
-        addRequirements(swerve);
+        this.xPos = xPos;
+        addRequirements(Vision.getInstance());
     }
 
-    private PathPoint generatePoint(Translation2d translation, Rotation2d heading, Rotation2d holonomicAngle) {
-        return new PathPoint(allianceFlip(translation), allianceFlip(heading), allianceFlip(holonomicAngle));
+    private PathPoint generatePoint(Pose2d pose, Rotation2d heading, double headingLength) {
+        return generatePoint(pose.getTranslation(), pose.getRotation(), heading, headingLength);
     }
 
-    private ArrayList<PathPoint> generatePoses() {
-        final ArrayList<PathPoint> poses = new ArrayList<PathPoint>();
-        final Translation2d start = swerve.getPose().getTranslation();
-        final Rotation2d holonomicAngle = allianceFlip(END_POINTS[index].getRotation());
-        poses.add(new PathPoint(start, swerve.getGyroRotation2d(), allianceFlip(HEADING_0)));
-        if (!pastPoint(start, CONDITION_1)) poses.add(generatePoint(POINT_1, HEADING_1, holonomicAngle));
-        if (!pastPoint(start, CONDITION_2)) poses.add(new PathPoint(allianceFlip(start.nearest(POINT_2)), allianceFlip(HEADING_2), holonomicAngle));
-        if (!pastPoint(start, CONDITION_3)) poses.add(new PathPoint(allianceFlip(start.nearest( POINT_3)), allianceFlip(HEADING_3), holonomicAngle));
-        
-        return poses;
+    private PathPoint generatePoint(Translation2d translation, Rotation2d holonomicAngle, Rotation2d heading, double headingLength) {
+        final PathPoint point =  new PathPoint(allianceFlip(translation), allianceFlip(heading), allianceFlip(holonomicAngle));
+        point.prevControlLength = headingLength;
+        point.nextControlLength = headingLength;
+        return point;
     }
 
-
-    private ArrayList<PathPoint> generatePoints() {
-        final ArrayList<PathPoint> points = new ArrayList<PathPoint>();
-        //final ArrayList<Pose2d> positions = generatePoses();
-
-        // final Rotation2d heading = Rotation2d.fromDegrees(180);
-        // for (int i = 0; i < positions.size(); i++) {
-        //     final Pose2d pose = positions.get(i);
-        //     final PathPoint point = new PathPoint(pose.getTranslation(), heading, pose.getRotation());
-        //     points.add(point);
-        // }
-
-        // return points;
-        return points;
-    }
-
-    private boolean pastPoint(Translation2d start, double condition) {
+    private boolean isPastPoint(Translation2d start, double condition) {
         if (DriverStation.getAlliance() == Alliance.Blue) {
             return start.getX() < condition;
         }
         return start.getX() > FIELD_X_LENGTH - condition;
     }
 
+    private ArrayList<PathPoint> generatePoses() {
+        final ArrayList<PathPoint> pathPoints = new ArrayList<PathPoint>();
+        final Translation2d start = swerve.getPose().getTranslation();
+        final Rotation2d holonomicAngle = END_POINTS[index].getRotation();
+        final PathPoint startPoint = new PathPoint(start, allianceFlip(HEADING), swerve.getGyroRotation2d());
+        final boolean topPath = start.getY() >= (POINT_2A.getY() + POINT_2B.getY()) / 2;
+        final boolean skipLastPoint = (topPath && index == 8) || (!topPath && index == 0);
+        startPoint.nextControlLength = 0.1;
+        pathPoints.add(startPoint);
+        if (!isPastPoint(start, CONDITION_1)) pathPoints.add(generatePoint(POINT_1, holonomicAngle, HEADING, 1));
+        if (!isPastPoint(start, CONDITION_2)) pathPoints.add(generatePoint(topPath ? POINT_2B : POINT_2A, holonomicAngle, HEADING, 1));
+        if (!isPastPoint(start, CONDITION_3) && !skipLastPoint) pathPoints.add(generatePoint(topPath ? POINT_3B : POINT_3A, holonomicAngle, HEADING, 0.5));
+        pathPoints.add(generatePoint(END_POINTS[index], HEADING, 0.1));
+        
+        return pathPoints;
+    }
+
+    private CommandBase generateAuto() {
+        index = Vision.SELECTED_GRID * 3 + xPos;
+        final PathPlannerTrajectory trajectory = PathPlanner.generatePath(fast, generatePoses());
+        return Commands.sequence(
+            Trajectories.generateAuto(trajectory),
+            Commands.run(()-> swerve.drive(new Translation2d(DriverStation.getAlliance() == Alliance.Blue ? -0.5 : 0.5, 0), 0, true)).withTimeout(0.5),
+            Commands.runOnce(()-> swerve.stop())
+        );
+    }
+
     @Override
     public void initialize() {
-        final PathPlannerTrajectory trajectory = PathPlanner.generatePath(
-            pathConstraints, generatePoints()
-        );
-        trajCommand = Trajectories.generateAuto(trajectory);
+        trajCommand = generateAuto();
         trajCommand.schedule();
+        CmdSwerveDrive.enabled = false;
+        endPoint = allianceFlip(END_POINTS[index]);
     }
 
     @Override
     public void execute() {
-
+        // if (Vision.AUTO_ENABLED) {
+        //     trajCommand.schedule();
+        //     if (trajCommand.isScheduled()) trajCommand.cancel();
+        //     else {
+        //         trajCommand = generateAuto();
+        //         trajCommand.schedule();
+        //     }
+        //     Vision.AUTO_ENABLED = false;
+        // }
     }
 
     @Override
-    public boolean isFinished() {
-        return !trajCommand.isScheduled();
-    }
-
-    @Override
-    public void end(boolean interrupted) {
-        swerve.stop();
+    public boolean isFinished(){
+        return swerve.getPose().minus(endPoint).getTranslation().getNorm() < 0.5;
     }
 }

@@ -1,18 +1,13 @@
 package frc.team3128.autonomous;
 
-import java.util.HashMap;
-
-import com.pathplanner.lib.auto.PIDConstants;
-import com.pathplanner.lib.auto.SwerveAutoBuilder;
-
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.trajectory.TrajectoryConfig;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
-import frc.team3128.Constants.SwerveConstants;
+import static edu.wpi.first.wpilibj2.command.Commands.*;
+import frc.team3128.PositionConstants.Position;
+import frc.team3128.commands.CmdAutoBalance;
 import frc.team3128.common.narwhaldashboard.NarwhalDashboard;
-import frc.team3128.common.utility.Log;
-import frc.team3128.subsystems.Swerve;
+import static frc.team3128.commands.CmdManager.*;
 
 /**
  * Class to store information about autonomous routines.
@@ -21,45 +16,48 @@ import frc.team3128.subsystems.Swerve;
 
 public class AutoPrograms {
 
-    public static Swerve swerve;
-
     public AutoPrograms() {
-        swerve = Swerve.getInstance();
 
         Trajectories.initTrajectories();
         initAutoSelector();
     }
 
     private void initAutoSelector() {
-        String[] autoStrings = new String[] {"TestAuto1", "b_bottom_1Cone+1Cube","b_bottom_1Cone"};
+        final String[] autoStrings = new String[] {
+                                            //Blue Autos
+                                                //Cable
+                                                "cable_1Cone+1Cube","cable_1Cone+1.5Cube", "cable_1Cone+2Cube", "cable_1Cone+1.5Cube+Climb",
+                                                //Mid
+                                                "mid_1Cone+Climb","mid_1Cone+0.5Cube+Climb", "mid_1Cone+1Cube+Climb",
+                                                //Hp
+                                                "hp_1Cone+1Cube", "hp_1Cone+1.5Cube",
+
+                                                "scuffedClimb"
+                                            };
         NarwhalDashboard.addAutos(autoStrings);
     }
 
     public Command getAutonomousCommand() {
-       //String selectedAutoName = NarwhalDashboard.getSelectedAutoName();
-        String selectedAutoName = "b_bottom_1Cone"; //uncomment and change this for testing without opening Narwhal Dashboard
+        String selectedAutoName = NarwhalDashboard.getSelectedAutoName();
+        final Command autoCommand;
 
         if (selectedAutoName == null) {
-            return null;
+            // autoCommand = score(Position.HIGH_CONE_AUTO, true);
+            autoCommand = none();
         }
 
-        return Trajectories.get(selectedAutoName);
-    }
-    
-    // /** 
-    //  * Follow trajectory and intake balls along the path
-    //  */
-    // private SequentialCommandGroup IntakePathCmd(String trajectory) {
-    //     ParallelDeadlineGroup movement = new ParallelDeadlineGroup(
-    //                                         trajectoryCmd(trajectory), 
-    //                                         new ScheduleCommand(new CmdExtendIntakeAndRun()));
-    //     return new SequentialCommandGroup(new InstantCommand(intake::ejectIntake, intake), movement);
-    // }
+        else if (selectedAutoName.equals("scuffedClimb")) {
+            autoCommand = sequence(
+                score(Position.HIGH_CONE_AUTO, true),
+                new CmdAutoBalance(false)
+            );
+        }
 
-    /**
-     * Flip 180 degrees rotation wise but keep same pose translation 
-     */
-    private Pose2d inverseRotation(Pose2d pose) {
-        return new Pose2d(pose.getTranslation(), new Rotation2d(pose.getRotation().getRadians() + Math.PI));
+        else {
+            selectedAutoName = ((DriverStation.getAlliance() == Alliance.Red) ? "r_" : "b_") + selectedAutoName;
+            autoCommand = Trajectories.get(selectedAutoName);
+        }
+
+        return autoCommand.beforeStarting(Trajectories.resetAuto());
     }
 }

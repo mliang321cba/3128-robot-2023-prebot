@@ -9,8 +9,13 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.team3128.Constants.LedConstants.Colors;
 import frc.team3128.autonomous.AutoPrograms;
+import frc.team3128.commands.CmdManager;
+import frc.team3128.subsystems.Leds;
 import frc.team3128.subsystems.Swerve;
 
 /**
@@ -21,10 +26,8 @@ public class Robot extends TimedRobot {
     public static Robot instance;
 
     public static RobotContainer m_robotContainer = new RobotContainer();
-    private Command m_autonomousCommand;
     public static AutoPrograms autoPrograms = new AutoPrograms();
-    public Timer timer;
-    public Timer xlockTimer;
+    public Timer xLockTimer = new Timer();
     public double startTime;
 
     public static synchronized Robot getInstance() {
@@ -36,8 +39,9 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotInit(){
+        new Trigger(this::isEnabled).negate().debounce(2).onTrue(new InstantCommand(()-> Swerve.getInstance().setBrakeMode(false)).ignoringDisable(true));
+        m_robotContainer.init();
         LiveWindow.disableAllTelemetry();
-        // Pivot.getInstance().offset = Pivot.getInstance().getAngle();
     }
 
     @Override
@@ -47,36 +51,34 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
-        m_robotContainer.init();
-        timer = new Timer();
-        m_autonomousCommand = autoPrograms.getAutonomousCommand();
+        xLockTimer.restart();
+        Command m_autonomousCommand = autoPrograms.getAutonomousCommand();
         if (m_autonomousCommand != null) {
             m_autonomousCommand.schedule();
-            timer.start();
         }
     }
 
     @Override
     public void autonomousPeriodic() {
         CommandScheduler.getInstance().run();
-        if (timer.hasElapsed(14.75) && Math.abs(Swerve.getInstance().getPitch()) > 6) {
+        if (xLockTimer.hasElapsed(14.75)) {
             new RunCommand(()->Swerve.getInstance().xlock(), Swerve.getInstance()).schedule();
         }
     }
 
     @Override
     public void teleopInit() {
-        m_robotContainer.init();
-        xlockTimer = new Timer();
-        xlockTimer.start();
+        Leds.getInstance().defaultColor = CmdManager.SINGLE_STATION ? Colors.CHUTE : Colors.SHELF;
+        Leds.getInstance().resetLeds();
+        xLockTimer.restart();
         CommandScheduler.getInstance().cancelAll();
     }
 
     @Override
     public void teleopPeriodic() {
         CommandScheduler.getInstance().run();
-        if (xlockTimer.hasElapsed(134.75)) {
-            //new RunCommand(()->Swerve.getInstance().xlock(), Swerve.getInstance()).schedule();
+        if (xLockTimer.hasElapsed(134.75)) {
+            // new RunCommand(()-> Swerve.getInstance().xlock(), Swerve.getInstance()).schedule();
         }
     }
 
@@ -88,6 +90,11 @@ public class Robot extends TimedRobot {
     @Override
     public void simulationPeriodic() {
         CommandScheduler.getInstance().run();
+    }
+
+    @Override
+    public void disabledInit() {
+        Swerve.getInstance().setBrakeMode(true);
     }
     
     @Override

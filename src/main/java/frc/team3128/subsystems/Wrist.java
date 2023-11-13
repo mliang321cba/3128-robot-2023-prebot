@@ -43,7 +43,7 @@ public class Wrist extends NAR_PIDSubsystem {
         m_wrist.setInverted(false);
         m_wrist.setIdleMode(IdleMode.kCoast);
         m_wrist.setSmartCurrentLimit(40);
-        // resetEncoder();
+        resetEncoder();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class Wrist extends NAR_PIDSubsystem {
     }
 
     public void resetEncoder() {
-        m_wrist.setSelectedSensorPosition(0);
+        m_wrist.setSelectedSensorPosition(90 * GEAR_RATIO / ROTATION_TO_DEGREES);
     }
 
     public void set(double power) {

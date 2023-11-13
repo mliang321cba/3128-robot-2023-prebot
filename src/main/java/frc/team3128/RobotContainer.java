@@ -1,42 +1,23 @@
 package frc.team3128;
 
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.Commands;
-
 import static edu.wpi.first.wpilibj2.command.Commands.*;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
-import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.team3128.commands.CmdAutoBalance;
 import frc.team3128.commands.CmdSwerveDrive;
-
-import static frc.team3128.Constants.FieldConstants.*;
-
-import static frc.team3128.Constants.SwerveConstants.*;
-
 import frc.team3128.PositionConstants.Position;
-import frc.team3128.commands.CmdBalance;
-import frc.team3128.commands.CmdBangBangBalance;
 import static frc.team3128.commands.CmdManager.*;
 import frc.team3128.common.hardware.input.NAR_ButtonBoard;
 import frc.team3128.common.hardware.input.NAR_Joystick;
 import frc.team3128.common.hardware.input.NAR_XboxController;
 import frc.team3128.common.narwhaldashboard.NarwhalDashboard;
-import frc.team3128.common.utility.Log;
-import frc.team3128.subsystems.Elevator;
-import frc.team3128.subsystems.Led;
 import frc.team3128.common.utility.NAR_Shuffleboard;
 import frc.team3128.subsystems.Swerve;
 import frc.team3128.subsystems.Vision;
-
-import java.util.function.BooleanSupplier;
 
 /**
  * Command-based is a "declarative" paradigm, very little robot logic should
@@ -47,67 +28,58 @@ import java.util.function.BooleanSupplier;
 public class RobotContainer {
 
     private Swerve swerve;
-    private Vision vision;
-    private Led led;
-    private Elevator elevator;
 
-    private NAR_Joystick leftStick;
     private NAR_Joystick rightStick;
     private NAR_ButtonBoard buttonPad;
-    private NAR_XboxController operatorController;
 
     public static NAR_XboxController controller;
 
-    private CommandScheduler commandScheduler = CommandScheduler.getInstance();
-  
-    public static BooleanSupplier DEBUG = ()-> false; 
-
-    private Trigger inProtected;
-
     public RobotContainer() {
-        NAR_Shuffleboard.addData("DEBUG", "DEBUG", ()-> DEBUG.getAsBoolean(), 0, 1);
-        var x = NAR_Shuffleboard.addData("DEBUG", "TOGGLE", false, 0, 0).withWidget("Toggle Button");
-        DEBUG = ()-> x.getEntry().getBoolean(false);
 
         swerve = Swerve.getInstance();
-        vision = Vision.getInstance();
-        led = Led.getInstance();
-        elevator = Elevator.getInstance();
 
-        //TODO: Enable all PIDSubsystems so that useOutput runs here
-        // pivot.enable();
-        // telescope.enable();
-
-        leftStick = new NAR_Joystick(0);
         rightStick = new NAR_Joystick(1);
         controller = new NAR_XboxController(2);
         buttonPad = new NAR_ButtonBoard(3);
-        operatorController = new NAR_XboxController(4);
-
-        // commandScheduler.setDefaultCommand(swerve, new CmdSwerveDrive(rightStick::getX, rightStick::getY, rightStick::getZ, true));
-        
         
         //uncomment line below to enable driving
-        commandScheduler.setDefaultCommand(swerve, new CmdSwerveDrive(controller::getLeftX,controller::getLeftY, controller::getRightX, true));
+        CommandScheduler.getInstance().setDefaultCommand(swerve, new CmdSwerveDrive(controller::getLeftX,controller::getLeftY, controller::getRightX, true));
         initDashboard();
         configureButtonBindings();
         
-        if(RobotBase.isSimulation())
-            DriverStation.silenceJoystickConnectionWarning(true);
+        DriverStation.silenceJoystickConnectionWarning(true);
     }   
 
     private void configureButtonBindings() {
-        controller.getButton("A").onTrue(new InstantCommand(()-> Vision.AUTO_ENABLED = !Vision.AUTO_ENABLED));
-        controller.getButton("RightTrigger").onTrue(new InstantCommand(()-> swerve.throttle = 1)).onFalse(new InstantCommand(()-> swerve.throttle = 0.8));
-        controller.getButton("LeftTrigger").onTrue(new InstantCommand(()-> swerve.throttle = .25)).onFalse(new InstantCommand(()-> swerve.throttle = 0.8));
-        controller.getButton("X").onTrue(new RunCommand(()-> swerve.xlock(), swerve)).onFalse(new InstantCommand(()-> swerve.stop(),swerve));
-        controller.getButton("B").onTrue(new InstantCommand(()-> swerve.resetEncoders()));
-        controller.getButton("Y").onTrue(runOnce(()-> ENABLE = true)).onFalse(runOnce(()-> ENABLE = false));
-        controller.getButton("Start").onTrue(resetSwerve());
-        controller.getButton("RightBumper").onTrue(pickup(Position.GROUND_CONE, true));
-        controller.getButton("LeftBumper").onTrue(pickup(Position.GROUND_CUBE, true));
+        controller.getButton("RightTrigger").onTrue(score(Position.LOW, true)).onFalse(runOnce(()-> ENABLE = false));
+        controller.getButton("LeftTrigger").onTrue(runOnce(()-> ENABLE = true)).onFalse(runOnce(()-> ENABLE = false));
+        controller.getButton("X").onTrue(xLock()).onFalse(stop());
+        controller.getButton("B").onTrue(resetSwerve());
+        controller.getButton("Start").onTrue(resetGyro());
+        controller.getButton("RightBumper").onTrue(pickup(Position.GROUND_CUBE, true)).onFalse(retract(Position.NEUTRAL).andThen(stallPower()).andThen(resetLeds()));
+        controller.getButton("LeftBumper").onTrue(pickup(Position.GROUND_CONE, true)).onFalse(retract(Position.NEUTRAL).andThen(stallPower()).andThen(resetLeds()));
+        controller.getButton("RightStick").onTrue(runOnce(()-> CmdSwerveDrive.setTurnSetpoint()));
+
+        controller.getUpPOVButton().onTrue(runOnce(()-> {
+            CmdSwerveDrive.rSetpoint = DriverStation.getAlliance() == Alliance.Red ? 180 : 0;
+            CmdSwerveDrive.enabled = true;
+        }));
+        controller.getDownPOVButton().onTrue(runOnce(()-> {
+            CmdSwerveDrive.rSetpoint = DriverStation.getAlliance() == Alliance.Red ? 0 : 180;
+            CmdSwerveDrive.enabled = true;
+        }));
+
+        controller.getRightPOVButton().onTrue(runOnce(()-> {
+            CmdSwerveDrive.rSetpoint = DriverStation.getAlliance() == Alliance.Red ? 90 : 270;
+            CmdSwerveDrive.enabled = true;
+        }));
+
+        controller.getLeftPOVButton().onTrue(runOnce(()-> {
+            CmdSwerveDrive.rSetpoint = DriverStation.getAlliance() == Alliance.Red ? 270 : 90;
+            CmdSwerveDrive.enabled = true;
+        }));
         
-        rightStick.getButton(1).onTrue(resetSwerve());
+        rightStick.getButton(1).onTrue(resetGyro());
         rightStick.getButton(2).onTrue(moveElv(0.4)).onFalse(moveElv(0));
         rightStick.getButton(3).onTrue(moveElv(-0.4)).onFalse(moveElv(0));
         rightStick.getButton(4).onTrue(moveElevator(30));
@@ -122,6 +94,8 @@ public class RobotContainer {
         rightStick.getButton(11).onTrue(intake(false));
         rightStick.getButton(12).onTrue(outtake());
         rightStick.getButton(13).onTrue(stopManip());
+        rightStick.getButton(14).onTrue(new CmdAutoBalance(true));
+        rightStick.getButton(15).onTrue(new CmdAutoBalance(false));
 
 
         buttonPad.getButton(5).onTrue(
@@ -134,9 +108,10 @@ public class RobotContainer {
             score(Position.HIGH_CUBE, 1)
         );
 
-        buttonPad.getButton(13).onTrue(runOnce(()-> SINGLE_STATION = !SINGLE_STATION));
+        buttonPad.getButton(13).onTrue(toggleLeds());
 
-        buttonPad.getButton(14).onTrue(retract(Position.NEUTRAL));
+        buttonPad.getButton(14).onTrue(retract(Position.NEUTRAL).beforeStarting(stopManip()));
+
 
         buttonPad.getButton(16).onTrue(
             HPpickup(Position.CHUTE_CONE, Position.SHELF_CONE)
@@ -154,26 +129,9 @@ public class RobotContainer {
             Vision.SELECTED_GRID = DriverStation.getAlliance() == Alliance.Red ? 2 : 0;
         }));
 
-        operatorController.getButton("Back").onTrue(new InstantCommand(()-> Vision.MANUAL = !Vision.MANUAL));
-
-        // inProtected = new Trigger(
-        //     () -> {
-        //         Pose2d pose = Swerve.getInstance().getPose();
-        //         if (DriverStation.getAlliance() == Alliance.Red) {
-        //             return ((pose.getY() < midY + robotLength/2 && pose.getX() < outerX + robotLength/2) || 
-        //                 (pose.getY() < leftY + robotLength/2 && pose.getX() < midX + robotLength/2)) ||
-        //                 ((pose.getY() > 6.85 && pose.getX() > FIELD_X_LENGTH - 6.70) || (pose.getY() > 5.50 && pose.getX() > FIELD_X_LENGTH - 3.30));
-        //         }
-        //         return ((pose.getY() < midY + robotLength/2 && pose.getX() > FIELD_X_LENGTH - outerX - robotLength/2) || 
-        //             (pose.getY() < leftY + robotLength/2 && pose.getX() > FIELD_X_LENGTH - midX - robotLength/2)) ||
-        //             ((pose.getY() > 6.85 && pose.getX() < 6.70) || (pose.getY() > 5.50 && pose.getX() < 3.30));
-        //     }
-        // );
-        // inProtected.onTrue(new InstantCommand(()-> controller.startVibrate())).onFalse(new InstantCommand(()-> controller.stopVibrate()));
     }
 
     public void init() {
-        Vision.AUTO_ENABLED = false;
         if (DriverStation.getAlliance() == Alliance.Red) {
             buttonPad.getButton(4).onTrue(
                 score(Position.LOW, 0)
@@ -218,21 +176,11 @@ public class RobotContainer {
     }
 
     private void initDashboard() {
-        if (DEBUG.getAsBoolean()) {
-            SmartDashboard.putData("CommandScheduler", CommandScheduler.getInstance());
-            //SmartDashboard.putData("Swerve", swerve);
-        }
 
         swerve.initShuffleboard();
-        vision.initShuffleboard();
+        Vision.getInstance().initShuffleboard();
 
         NarwhalDashboard.startServer();
-        
-        Log.info("NarwhalRobot", "Setting up limelight chooser...");
-      
-        // for (NAR_Camera cam : vision.getCameras()) {
-        //     NarwhalDashboard.addLimelight(cam);
-        // }
     }
 
     public void updateDashboard() {
@@ -240,11 +188,9 @@ public class RobotContainer {
         NarwhalDashboard.put("voltage", RobotController.getBatteryVoltage());
         NarwhalDashboard.put("x", swerve.getPose().getX());
         NarwhalDashboard.put("y", swerve.getPose().getY());
-        SmartDashboard.putNumber("LeftX",controller.getLeftX());
-        SmartDashboard.putNumber("LeftY",controller.getLeftY());
-        SmartDashboard.putNumber("RightX",controller.getRightX());
-        SmartDashboard.putNumber("RightY",controller.getRightY());
-        NAR_Shuffleboard.update();
-        SmartDashboard.putNumber("Pitch",swerve.getPitch());
+
+        if (DriverStation.getMatchType() == MatchType.None) {
+            NAR_Shuffleboard.update();
+        }
     }
 }

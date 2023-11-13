@@ -312,9 +312,7 @@ public class NAR_Camera extends PhotonCamera {
     /**
      * Corrects for photonvision pose error when viewing tag at an angle
      * @return Transform2d of the target relative to the camera
-     * @deprecated Use {@link #getTest()} instead.
      */
-    @Deprecated(forRemoval = true)
     public Transform2d getProcessedTarget() {
         return getProcessedTarget(bestTarget);
     }
@@ -323,7 +321,6 @@ public class NAR_Camera extends PhotonCamera {
      * Corrects for photonvision pose error when viewing tag at an angle
      * @param target the selected target
      * @return Transform2d of the target relative to the camera
-     * @deprecated Use {@link #getTest(PhotonTrackedTarget target)} instead.
      */
     private Transform2d getProcessedTarget(PhotonTrackedTarget target) {
         if (!hasValidTarget() || !AprilTags.containsKey(targetId(target))) return new Transform2d();
@@ -338,7 +335,9 @@ public class NAR_Camera extends PhotonCamera {
     /**
      * Corrects for photonvision pose error when viewing tag at an angle
      * @return Transform2d of the target relative to the camera
+     * @deprecated Use {@link #getProcessedTarget()} instead.
      */
+    @Deprecated(forRemoval = true)
     public Transform2d getTest() {
         return getTest(bestTarget);
     }
@@ -347,6 +346,7 @@ public class NAR_Camera extends PhotonCamera {
      * Corrects for photonvision pose error when viewing tag at an angle
      * @param target the selected target 
      * @return Transform2d of the target relative to the camera
+     * @deprecated Use {@link #getProcessedTarget(PhotonTrackedTarget target)} instead.
      */
     private Transform2d getTest(PhotonTrackedTarget target) {
         if (!hasValidTarget() || !AprilTags.containsKey(targetId(target))) return new Transform2d();
@@ -464,7 +464,7 @@ public class NAR_Camera extends PhotonCamera {
     private Pose2d getPosApril(PhotonTrackedTarget tag) {
         if(!hasValidTarget() || !AprilTags.containsKey(targetId(tag))) return new Pose2d();
         Transform2d transform = getProcessedTarget(tag);
-        if (!AprilTags.containsKey(targetId(tag)) || transform.getX() > 5 || Math.abs(transform.getRotation().getDegrees()) < 150) return new Pose2d();
+        if (!AprilTags.containsKey(targetId(tag)) || transform.getX() > 4 || Math.abs(transform.getRotation().getDegrees()) < 150) return new Pose2d();
         Pose2d target = AprilTags.get(targetId());
         if (target == null) return new Pose2d();
         Translation2d coord = target.getTranslation().plus(transform.getTranslation().rotateBy(target.getRotation()));

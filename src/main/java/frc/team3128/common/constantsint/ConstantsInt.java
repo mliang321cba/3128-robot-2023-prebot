@@ -21,7 +21,6 @@ public class ConstantsInt extends Constants {
     //The Constants will be overridden and NarwhalDashboard will be able to change it
     //IMPORTANT: Omit "final" when temporarily adding constants to this class
     
-    public static class ConversionConstants extends Constants.ConversionConstants {}
     public static class SwerveConstants extends Constants.SwerveConstants {}
     public static class VisionConstants extends Constants.VisionConstants {}
 
@@ -30,7 +29,6 @@ public class ConstantsInt extends Constants {
         categories = new HashMap<String, Class<?>>();
         constants = new HashMap<String, List<Field>>();
         primitiveNumbers = Arrays.asList(int.class, long.class, double.class, byte.class, short.class);
-        categories.put("ConversionConstants", ConstantsInt.ConversionConstants.class);
         categories.put("SwerveConstants", ConstantsInt.SwerveConstants.class);
         categories.put("VisionConstants", ConstantsInt.VisionConstants.class);
 

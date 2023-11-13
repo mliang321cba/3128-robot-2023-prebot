@@ -28,6 +28,7 @@ public class Elevator extends NAR_PIDSubsystem {
         configMotors();
         initShuffleboard(kS, kV, kG);
         m_controller.setTolerance(ELV_TOLERANCE);
+        resetEncoder();
     }
 
     public void startPID(Position position) {
@@ -66,15 +67,12 @@ public class Elevator extends NAR_PIDSubsystem {
     }
 
     public void resetEncoder() {
-        m_elv1.setSelectedSensorPosition(0);
+        m_elv2.setSelectedSensorPosition(0);
     }
 
     @Override
     public double getMeasurement() {
-        return m_elv1.getSelectedSensorPosition() / GEAR_RATIO * SPOOL_CIRCUMFERENCE;
+        return m_elv2.getSelectedSensorPosition() / GEAR_RATIO * SPOOL_CIRCUMFERENCE;
     }
 
-    public boolean pastFramePerimiter() {
-        return getMeasurement() >= FRAME_LENGTH;
-    }
 }

@@ -158,7 +158,7 @@ public class SwerveModule {
      * @return A swerve module position
      */
     public SwerveModulePosition getPosition() {
-        double position = falconToMeters(driveMotor.getSelectedSensorPosition(), wheelCircumference, driveGearRatio);
+        double position = rotationsToMeters(driveMotor.getSelectedSensorPosition(), wheelCircumference, driveGearRatio);
         Rotation2d angle = getAngle();
         return new SwerveModulePosition(position, angle);
     }
@@ -169,6 +169,10 @@ public class SwerveModule {
     public void stop() {
         driveMotor.set(0);
         angleMotor.set(0);
+    }
+
+    public void setBrakeMode(boolean isBrake) {
+        driveMotor.setIdleMode(isBrake ? IdleMode.kBrake : IdleMode.kCoast);
     }
 
     /**

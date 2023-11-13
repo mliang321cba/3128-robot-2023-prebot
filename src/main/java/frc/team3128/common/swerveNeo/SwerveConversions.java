@@ -77,9 +77,10 @@ public class SwerveConversions {
      * @param gearRatio Gear Ratio between motor and mechanism
      * @return Meters traveled
      */
-    public static double falconToMeters(double rotations, double circumference, double gearRatio){
+    public static double rotationsToMeters(double rotations, double circumference, double gearRatio){
         double mechRotations = rotations / gearRatio;
-        return mechRotations * circumference;
+        double meters = mechRotations * circumference;
+        return meters;
     }
 
     /**
@@ -88,7 +89,7 @@ public class SwerveConversions {
      * @param gearRatio Gear Ratio between motor and Mechanism
      * @return rotations of motor
      */
-    public static double metersToFalcon(double meters, double circumference, double gearRatio){
+    public static double metersToRotations(double meters, double circumference, double gearRatio){
         double mechRotations = meters / circumference;
         double rotations = mechRotations * gearRatio;
         return rotations; 
