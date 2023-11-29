@@ -11,10 +11,11 @@ import frc.team3128.commands.CmdAutoBalance;
 import frc.team3128.commands.CmdSwerveDrive;
 import frc.team3128.PositionConstants.Position;
 import static frc.team3128.commands.CmdManager.*;
+
+import common.utility.narwhaldashboard.NarwhalDashboard;
 import frc.team3128.common.hardware.input.NAR_ButtonBoard;
 import frc.team3128.common.hardware.input.NAR_Joystick;
 import frc.team3128.common.hardware.input.NAR_XboxController;
-import frc.team3128.common.narwhaldashboard.NarwhalDashboard;
 import frc.team3128.common.utility.NAR_Shuffleboard;
 import frc.team3128.subsystems.Swerve;
 import frc.team3128.subsystems.Vision;
@@ -33,6 +34,8 @@ public class RobotContainer {
     private NAR_ButtonBoard buttonPad;
 
     public static NAR_XboxController controller;
+
+    private NarwhalDashboard dashboard;
 
     public RobotContainer() {
 
@@ -180,15 +183,15 @@ public class RobotContainer {
         swerve.initShuffleboard();
         Vision.getInstance().initShuffleboard();
 
-        NarwhalDashboard.startServer();
+        dashboard = NarwhalDashboard.getInstance();
+        dashboard.addUpdate("time", ()-> Timer.getMatchTime());
+        dashboard.addUpdate("voltage",()-> RobotController.getBatteryVoltage());
+        dashboard.addUpdate("x", ()-> swerve.getPose().getX());
+        dashboard.addUpdate("y", ()-> swerve.getPose().getY());
     }
 
     public void updateDashboard() {
-        NarwhalDashboard.put("time", Timer.getMatchTime());
-        NarwhalDashboard.put("voltage", RobotController.getBatteryVoltage());
-        NarwhalDashboard.put("x", swerve.getPose().getX());
-        NarwhalDashboard.put("y", swerve.getPose().getY());
-
+        dashboard.update();
         if (DriverStation.getMatchType() == MatchType.None) {
             NAR_Shuffleboard.update();
         }

@@ -6,8 +6,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import static edu.wpi.first.wpilibj2.command.Commands.*;
 import frc.team3128.PositionConstants.Position;
 import frc.team3128.commands.CmdAutoBalance;
-import frc.team3128.common.narwhaldashboard.NarwhalDashboard;
 import static frc.team3128.commands.CmdManager.*;
+
+import common.utility.narwhaldashboard.NarwhalDashboard;
 
 /**
  * Class to store information about autonomous routines.
@@ -34,11 +35,12 @@ public class AutoPrograms {
 
                                                 "scuffedClimb"
                                             };
-        NarwhalDashboard.addAutos(autoStrings);
+        NarwhalDashboard.getInstance().addAutos(autoStrings);
     }
 
     public Command getAutonomousCommand() {
-        String selectedAutoName = NarwhalDashboard.getSelectedAutoName();
+        // String selectedAutoName = NarwhalDashboard.getInstance().selectedAutoName;
+        String selectedAutoName = null;
         final Command autoCommand;
 
         if (selectedAutoName == null) {
